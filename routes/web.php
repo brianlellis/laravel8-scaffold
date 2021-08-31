@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\Route;
 | contains the "web" middleware group. Now create something great!
 |
 */
+aggregate_scaffold_routes();
+
 $use_files_routing  = \DB::table( 'settings_site' )
                         ->where( 'id' , 'file_route_binding' )
                         ->first();
