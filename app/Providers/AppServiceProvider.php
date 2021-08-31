@@ -23,8 +23,13 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-      $app_root = base_path();
-      $this->loadViewsFrom($app_root . '/resources/views/page', 'theme');
-      $this->loadViewsFrom(glob($app_root.'/app/Rapyd/Modules/**/Views/Public'), 'rapyd_module_public');
+      $app_root         = base_path();
+      $resource_blades  = $app_root . '/resources/views/page';
+      $module_blades    = glob($app_root.'/app/Modules/**/Views/Public');
+      $admin_blades     = glob($app_root.'/app/Modules/**/Views/Admin');
+
+      $this->loadViewsFrom( $admin_blades     , 'module_admin');
+      $this->loadViewsFrom( $resource_blades  , 'theme' );
+      $this->loadViewsFrom( $module_blades    , 'module_public' );
     }
 }

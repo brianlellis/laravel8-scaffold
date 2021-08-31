@@ -17,47 +17,56 @@ $use_files_routing  = \DB::table( 'settings_site' )
                         ->first();
 
 if ( $use_files_routing && 1 === (int) $use_files_routing->value ) {
-  Route::fallback( function () {
-    return determine_view_public();
-  });
+  $is_admin   = determine_admin_route();
+  $middleware = middleware_default( $is_admin );
+
+  Route::fallback( function () use ( $is_admin ) {
+    return determine_view( $is_admin );
+  })->middleware( $middleware );
 }
 
-function aggregate_rapyd_routes ( ): void
+function aggregate_scaffold_routes ( ): void
 {
   $app_root       = base_path();
-  $module_routes  = glob( $app_root . '/app/Rapyd/Modules/*/web.php' );
-  $theme_routes   = glob( $app_root . '/resources/*/routes/*.{php}' , GLOB_BRACE );
+  $module_routes  = glob( $app_root . '/app/Modules/*/web.php' );
   
-  foreach ( [ $module_routes , $theme_routes ] as $arr_section ) {
-    foreach ( $arr_section as $route_file ) {
-      require_once $route_file;
-    }
+  foreach ( $module_routes as $route_file ) {
+    require_once $route_file;
   }
 }
 
-function determine_admin_route_depth ( ): string // string|bool
+function determine_admin_route ( ): bool
 {
   $admin_path = request()->path();
 
-  if ( count ( $admin_path ) && 'admin' === $admin_path[0] ) {
-    return '/' . implode( '/' , $admin_path );
+  if ( 'admin/' === substr( $admin_path , 0 , 6 ) ) {
+    return true;
   }
   return false;
 }
 
-function apply_middleware_admin ( string $admin_path ): void
+function middleware_default ( bool $is_admin = false ): array
 {
-  Route::group( [ 'middleware'  => 'auth , verified' ] , function ( ) use ( $admin_path ) {
-    Route::get( $admin_path , function ( ) {
-      return view( 'rapyd_admin::master' );
-    });
-  });
+  $default_middleware = [];
+
+  if ( $is_admin ) {
+    $default_middleware[]       = 'auth';
+    $require_email_verification = \DB::table( 'settings_site' )
+                                    ->where( 'id' , 'auth_email_verification' )
+                                    ->first();
+
+    if ( $require_email_verification ) {
+      $default_middleware[] = 'verified';
+    }
+  }
+
+  return $default_middleware;
 }
 
 /**
  * PUBLIC FACING PAGES
 **/
-function existing_redirects ( string $cur_path )
+function existing_redirects ( string $cur_path ): void
 {
   $route = \DB::table( 'redirectors' )->where( 'entering_route' , $cur_path )->first();
   
@@ -73,7 +82,7 @@ function eval_db_cms_page ( string $cur_uri ): object|bool
   $db_record  = \DB::table( 'cms_pages' )->where( 'url_slug' , $cur_uri )->first();
 
   if ( !$db_record ) {
-    $db_record  = \DB::table( 'cms_blog_posts' )->where( 'url_slug' , $cur_uri )->first();    
+    $db_record = \DB::table( 'cms_blog_posts' )->where( 'url_slug' , $cur_uri )->first();    
   }
   
   if ( !$db_record ) {
@@ -83,28 +92,43 @@ function eval_db_cms_page ( string $cur_uri ): object|bool
   return $db_record;
 }
 
-function eval_blade_file_existence ( string $cur_uri ): string|bool
+function eval_blade_file_existence ( bool $is_admin = false ): string|bool
 {
-  $blade_path   = str_replace( '/' , '.' , request()->path() );
-  $module_path  = 'rapyd_module_public::' . $blade_path;
-  $module_blade = View::exists( $module_path );
+  $blade_str = str_replace( '/' , '.' , request()->path() );
 
-  if ( !$module_blade ) {
-    $module_path = 'theme::' . $blade_path;
-    
-    if ( View::exists( $module_path ) ) {
+  if ( $is_admin ) {
+    $rm_admin_str = str_replace( 'admin.' , '' , $blade_str );
+    $module_path  = 'module_admin::' . $rm_admin_str;
+
+    if  ( View::exists( $module_path ) ) {
       return $module_path;
     }
   } else {
-    return $module_path;
+    $blade_path   = 'module_public::' . $blade_str;
+
+    if ( View::exists( $blade_path ) ) {
+      return $blade_path;
+    } else {
+      $blade_path = 'theme::' . $blade_str;
+
+      if ( View::exists( $blade_path ) ) {
+        return $blade_path;
+      }
+    }
   }
+
   return false;
 }
 
-function determine_view_public ( ): object
+function determine_view ( bool $is_admin = false ): object
 {
   /**
    * ORDER OF OPERATIONS
+   * ADMIN (AUTH) PAGES
+   * 1. PRESENT BLADE FILE
+   *  a. module
+   * 
+   * PUBLIC FACING PAGES
    * 1. Existing Redirects
    * 2. DB_CMS_PAGE
    * 3. DB_CMS_BLOGPOST
@@ -113,36 +137,23 @@ function determine_view_public ( ): object
    *  b. module
   **/
   $blade_path   = request()->path();
-  existing_redirects( $blade_path );
-  
   $view_header  = 200;
-  $blade_view   = eval_blade_file_existence( $blade_path );
 
-  $db_cms_page  = eval_db_cms_page( $blade_path );
-  if ( $db_cms_page ) {
+  if ( !$is_admin ) {
+    existing_redirects( $blade_path );
+  }
+  if ( !$is_admin && $db_cms_page = eval_db_cms_page( $blade_path ) ) {
     // code
   }
+  
+  $blade_view = eval_blade_file_existence( $is_admin );
 
   if ( $blade_view ) {
     return view( $blade_view );
   } else {
-    $db_record  = \DB::table( 'cms_pages' )->where( 'url_slug' , '404' )->first();
-
-    if ( $db_record ) {
+    if ( $db_record = eval_db_cms_page( '404' ) ) {
       // code
     }
     return view( 'theme::404' );
-  }
-}
-
-function process_route_to_blade ( ): void
-{
-  aggregate_rapyd_routes();
-  $admin_path = determine_admin_route_depth();
-
-  if ( $admin_path ) {
-    apply_middleware_admin();
-  } else {
-    determine_view_public();
   }
 }
