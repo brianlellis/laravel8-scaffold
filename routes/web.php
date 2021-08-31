@@ -1,6 +1,7 @@
 <?php
 
 require_once base_path() . '/Scaffold/ControllerData.php';
+require_once base_path() . '/Scaffold/ControllerMapper.php';
 
 use Illuminate\Support\Facades\Route;
 
@@ -14,6 +15,8 @@ use Illuminate\Support\Facades\Route;
 | contains the "web" middleware group. Now create something great!
 |
 */
+eval_controller_map_existence( $controller_mapper );
+
 aggregate_scaffold_routes();
 
 $use_files_routing  = \DB::table( 'settings_site' )
