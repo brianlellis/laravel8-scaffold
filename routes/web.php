@@ -1,5 +1,7 @@
 <?php
 
+require_once base_path() . '/Scaffold/ControllerData.php';
+
 use Illuminate\Support\Facades\Route;
 
 /*
