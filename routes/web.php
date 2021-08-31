@@ -12,8 +12,15 @@ use Illuminate\Support\Facades\Route;
 | contains the "web" middleware group. Now create something great!
 |
 */
+$use_files_routing  = \DB::table( 'settings_site' )
+                        ->where( 'id' , 'file_route_binding' )
+                        ->first();
 
-determine_view_public();
+if ( $use_files_routing && 1 === (int) $use_files_routing->value ) {
+  Route::fallback( function () {
+    return determine_view_public();
+  });
+}
 
 function aggregate_rapyd_routes ( ): void
 {
@@ -50,9 +57,9 @@ function apply_middleware_admin ( string $admin_path ): void
 /**
  * PUBLIC FACING PAGES
 **/
-function existing_redirects ( ): void
+function existing_redirects ( string $cur_path )
 {
-  $route    = \DB::table( 'redirectors' )->where( 'entering_route' , request()->path() )->first();
+  $route = \DB::table( 'redirectors' )->where( 'entering_route' , $cur_path )->first();
   
   if ( $route ) {
     $view_header = intval( $route->action );
@@ -60,13 +67,13 @@ function existing_redirects ( ): void
   }
 }
 
-function eval_db_cms_page ( string $cur_uri , string $table ): object|bool
+function eval_db_cms_page ( string $cur_uri ): object|bool
 {
-  $cms_slug   = array_pop( $cur_uri );
-  $db_record  = \DB::table( $table )->where( 'url_slug' , $cms_slug )->first();
+  $cur_uri    = '/' . $cur_uri;
+  $db_record  = \DB::table( 'cms_pages' )->where( 'url_slug' , $cur_uri )->first();
 
   if ( !$db_record ) {
-    $db_record  = \DB::table( $table )->where( 'url_slug' , $cms_slug )->first();    
+    $db_record  = \DB::table( 'cms_blog_posts' )->where( 'url_slug' , $cur_uri )->first();    
   }
   
   if ( !$db_record ) {
@@ -94,7 +101,7 @@ function eval_blade_file_existence ( string $cur_uri ): string|bool
   return false;
 }
 
-function determine_view_public ( ): object|bool
+function determine_view_public ( ): object
 {
   /**
    * ORDER OF OPERATIONS
@@ -105,25 +112,27 @@ function determine_view_public ( ): object|bool
    *  a. resources
    *  b. module
   **/
-  existing_redirects( );
   $blade_path   = request()->path();
+  existing_redirects( $blade_path );
+  
   $view_header  = 200;
   $blade_view   = eval_blade_file_existence( $blade_path );
-  // dd( $blade_view , $blade_path );
-  // $db_cms_page  = eval_db_cms_page( $uri_path_str , 'cms_pages' );
-  // if ( $db_cms_page ) {
-  //   // code
-  // }
-  
-  // $db_cms_page  = eval_db_cms_page( $uri_path_str , 'cms_blog_posts' );
-  // if ( $db_cms_page ) {
-  //   // code
-  // }
-  if ( $blade_view ) {
-    dd($blade_view);
-    return Response::view( $blade_view );
+
+  $db_cms_page  = eval_db_cms_page( $blade_path );
+  if ( $db_cms_page ) {
+    // code
   }
-  return false;
+
+  if ( $blade_view ) {
+    return view( $blade_view );
+  } else {
+    $db_record  = \DB::table( 'cms_pages' )->where( 'url_slug' , '404' )->first();
+
+    if ( $db_record ) {
+      // code
+    }
+    return view( 'theme::404' );
+  }
 }
 
 function process_route_to_blade ( ): void
