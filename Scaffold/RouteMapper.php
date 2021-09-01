@@ -99,7 +99,7 @@ function eval_blade_file_existence ( bool $is_admin = false ): string|bool
     if ( View::exists( $blade_path ) ) {
       return $blade_path;
     } else {
-      $blade_path = 'theme::' . $blade_str;
+      $blade_path = 'theme::page.' . $blade_str;
 
       if ( View::exists( $blade_path ) ) {
         return $blade_path;
@@ -126,7 +126,7 @@ function eval_controller_value ( ): array
   return [];
 }
 
-function determine_view ( bool $is_admin = false ): object
+function determine_view ( bool $is_admin = false ): object|string
 {
   /**
    * ORDER OF OPERATIONS
@@ -155,7 +155,11 @@ function determine_view ( bool $is_admin = false ): object
   $blade_view = eval_blade_file_existence( $is_admin );
 
   if ( $blade_view ) {
-    return view( $blade_view, eval_controller_value() );
+    require_once base_path() . '/Scaffold/BladeWrapper.php';
+    require_once base_path() . '/Scaffold/BladeWrapperMapper.php';
+
+    $view = view( $blade_view, eval_controller_value() );
+    return blade_content( $view , $blade_mapper );
   } else {
     if ( $db_record = eval_db_cms_page( '404' ) ) {
       // code

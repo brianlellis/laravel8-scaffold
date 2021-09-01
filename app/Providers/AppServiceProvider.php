@@ -24,7 +24,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot()
     {
       $app_root         = base_path();
-      $resource_blades  = $app_root . '/resources/views/page';
+      $resource_blades  = $app_root . '/resources/views';
       $module_blades    = glob($app_root.'/app/Modules/**/Views/Public');
       $admin_blades     = glob($app_root.'/app/Modules/**/Views/Admin');
 
