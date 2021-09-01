@@ -1,0 +1,3 @@
+PUBLIC MODULE BLADE TEST
+
+{{$data}}

@@ -1,8 +1,5 @@
 <?php
 
-require_once base_path() . '/Scaffold/ControllerData.php';
-require_once base_path() . '/Scaffold/ControllerMapper.php';
-
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -15,8 +12,6 @@ use Illuminate\Support\Facades\Route;
 | contains the "web" middleware group. Now create something great!
 |
 */
-eval_controller_map_existence( $controller_mapper );
-
 aggregate_scaffold_routes();
 
 $use_files_routing  = \DB::table( 'settings_site' )
@@ -127,6 +122,15 @@ function eval_blade_file_existence ( bool $is_admin = false ): string|bool
   return false;
 }
 
+function eval_controller_value ( ): array
+{
+  require_once base_path() . '/Scaffold/ControllerData.php';
+  require_once base_path() . '/Scaffold/ControllerMapper.php';
+
+  $controller_check = eval_controller_map_existence( $controller_mapper );
+  return eval_controller_map_value( $controller_check );
+}
+
 function determine_view ( bool $is_admin = false ): object
 {
   /**
@@ -156,7 +160,7 @@ function determine_view ( bool $is_admin = false ): object
   $blade_view = eval_blade_file_existence( $is_admin );
 
   if ( $blade_view ) {
-    return view( $blade_view );
+    return view( $blade_view, eval_controller_value() );
   } else {
     if ( $db_record = eval_db_cms_page( '404' ) ) {
       // code
