@@ -1,3 +1,3 @@
 PUBLIC MODULE BLADE TEST
 
-{{$data}}
+{{$brian}}

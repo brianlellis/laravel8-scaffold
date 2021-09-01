@@ -2,8 +2,10 @@
 
 class Test
 {
-  public function test ( ): string
+  public function test ( ): array
   {
-    return 'controller working';
+    return [
+      'brian' => 'controller working'
+    ];
   }
 }
