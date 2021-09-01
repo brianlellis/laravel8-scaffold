@@ -45,7 +45,7 @@ function middleware_default ( bool $is_admin = false ): array
                                     ->where( 'id' , 'auth_email_verification' )
                                     ->first();
 
-    if ( $require_email_verification ) {
+    if ( $require_email_verification && 1 === (int) $require_email_verification->value ) {
       $default_middleware[] = 'verified';
     }
   }
@@ -112,11 +112,18 @@ function eval_blade_file_existence ( bool $is_admin = false ): string|bool
 
 function eval_controller_value ( ): array
 {
-  require_once base_path() . '/Scaffold/ControllerData.php';
-  require_once base_path() . '/Scaffold/ControllerMapper.php';
+  $controller_usage = \DB::table( 'settings_site' )
+                        ->where( 'id' , 'file_controller_binding' )
+                        ->first();
 
-  $controller_check = eval_controller_map_existence( $controller_mapper );
-  return eval_controller_map_value( $controller_check );
+  if ( $controller_usage && 1 === (int) $controller_usage->value ) {
+    require_once base_path() . '/Scaffold/ControllerData.php';
+    require_once base_path() . '/Scaffold/ControllerMapper.php';
+
+    $controller_check = eval_controller_map_existence( $controller_mapper );
+    return eval_controller_map_value( $controller_check );
+  }
+  return [];
 }
 
 function determine_view ( bool $is_admin = false ): object
