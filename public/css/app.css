@@ -386,6 +386,10 @@ video {
 	top: 0px;
 }.right-0 {
 	right: 0px;
+}.col-span-2 {
+	grid-column: span 2 / span 2;
+}.col-span-8 {
+	grid-column: span 8 / span 8;
 }.mx-auto {
 	margin-left: auto;
 	margin-right: auto;
@@ -413,12 +417,18 @@ video {
 	display: grid;
 }.hidden {
 	display: none;
+}.h-screen-5 {
+	height: 5vh;
 }.h-5 {
 	height: 1.25rem;
 }.h-8 {
 	height: 2rem;
 }.h-16 {
 	height: 4rem;
+}.h-screen-80 {
+	height: 80vh;
+}.h-screen-15 {
+	height: 15vh;
 }.min-h-screen {
 	min-height: 100vh;
 }.w-screen {
@@ -435,10 +445,14 @@ video {
 	max-width: 72rem;
 }.grid-cols-1 {
 	grid-template-columns: repeat(1, minmax(0, 1fr));
+}.grid-cols-12 {
+	grid-template-columns: repeat(12, minmax(0, 1fr));
 }.items-center {
 	align-items: center;
 }.justify-center {
 	justify-content: center;
+}.gap-2 {
+	gap: 0.5rem;
 }.overflow-hidden {
 	overflow: hidden;
 }.border-t {
@@ -451,6 +465,9 @@ video {
 }.border-gray-400 {
 	--tw-border-opacity: 1;
 	border-color: rgba(156, 163, 175, var(--tw-border-opacity));
+}.bg-blue-400 {
+	--tw-bg-opacity: 1;
+	background-color: rgba(96, 165, 250, var(--tw-bg-opacity));
 }.bg-blue-100 {
 	--tw-bg-opacity: 1;
 	background-color: rgba(219, 234, 254, var(--tw-bg-opacity));
@@ -460,6 +477,9 @@ video {
 }.bg-gray-100 {
 	--tw-bg-opacity: 1;
 	background-color: rgba(243, 244, 246, var(--tw-bg-opacity));
+}.bg-red-400 {
+	--tw-bg-opacity: 1;
+	background-color: rgba(248, 113, 113, var(--tw-bg-opacity));
 }.p-6 {
 	padding: 1.5rem;
 }.py-4 {
@@ -475,18 +495,34 @@ video {
 	padding-top: 2rem;
 }.text-center {
 	text-align: center;
+}.align-middle {
+	vertical-align: middle;
 }.text-sm {
 	font-size: 0.875rem;
 	line-height: 1.25rem;
 }.text-lg {
 	font-size: 1.125rem;
 	line-height: 1.75rem;
+}.text-4xl {
+	font-size: 2.25rem;
+	line-height: 2.5rem;
+}.text-7xl {
+	font-size: 4.5rem;
+	line-height: 1;
 }.font-semibold {
 	font-weight: 600;
 }.uppercase {
 	text-transform: uppercase;
 }.leading-7 {
 	line-height: 1.75rem;
+}.leading-vh-15 {
+	line-height: 15vh;
+}.leading-vh-5 {
+	line-height: 5vh;
+}.leading-vh-80 {
+	line-height: 80vh;
+}.leading-vh-60 {
+	line-height: 60vh;
 }.tracking-wider {
 	letter-spacing: 0.05em;
 }.text-gray-200 {

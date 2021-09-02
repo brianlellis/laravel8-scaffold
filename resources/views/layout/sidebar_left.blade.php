@@ -1,3 +1,3 @@
-<div style="background: green; height: 50vh; width: 20vw; display: inline-block;">
+<div class="bg-blue-400 col-span-2">
   I am a left sidebar
 </div>
