@@ -193,6 +193,13 @@ class Scaffold extends Command
 
   protected function css_sass_7_1_architecture ( bool $is_sass = false ): void
   {
+    $dir = base_path() . '/resources/' . ( $is_sass ? 'sass' : 'css' );
+    $ext = $is_sass ? 'scss' : 'css';
+    
+    if ( $is_sass ) {
+      mkdir( $dir , 0755 );
+    }
+
     $str_confirm = 'Do you wish to use a 7-1 architecture for styling?';
 
     if ( $this->confirm( $str_confirm , true ) ) {
@@ -406,13 +413,13 @@ class Scaffold extends Command
         $str_js = "homedir + '/.valet/Certificates/' + '{$sync_proxy}'";
         $content .=<<<EOD
           \n  .browserSync({
-            proxy: '{$sync_proxy}',
-            host: {$domain},
-            open: 'external',
-            https: {
-              key:  ssl_cert_path + '.key',
-              cert: ssl_cert_path + '.crt',
-            }
+            proxy:  '{$sync_proxy}',
+            host:   '{$domain}',
+            open:   'external',
+            https:  {
+                      key:  ssl_cert_path + '.key',
+                      cert: ssl_cert_path + '.crt',
+                    }
           });
         EOD;
       } else {
