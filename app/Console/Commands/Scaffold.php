@@ -51,7 +51,7 @@ class Scaffold extends Command
       $this->css_tailwind_config_create();
 
       if ( ! $sass_install = $this->sass_install() ) {
-        $this->css_add_tailwind_app();
+        $this->css_sass_7_1_architecture();
       }
 
       $this->webpack_mix_create( $sass_install , $this->browsersync_config() );
@@ -63,14 +63,18 @@ class Scaffold extends Command
     $this->npm_uninstall_dependencies( $this->eval_tailwind_depencies() );
     ( new Filesystem )->delete( base_path() . '/tailwind.config.js' );
 
-    if ( file_exists( base_path() . '/resources/sass' ) ) {
+    $sass_dir = file_exists( base_path() . '/resources/sass' );
+    if ( $sass_dir ) {
       $str_confirm = 'Do you wish to remove your SASS structure';
       if ( $this->confirm( $str_confirm ) ) {
-        $this->sass_files_dir_remove();
-        $this->webpack_mix_original_create();
-        $this->postcss_plugins_uninstall();
-      }
+        $this->css_sass_files_dir_remove( true );
+      } 
+    } else {
+      $this->css_sass_files_dir_remove( );
     }
+
+    $this->webpack_mix_original_create();
+    $this->postcss_plugins_uninstall();
   }
 
   protected function css_tailwind_config_create ( ): void
@@ -102,17 +106,6 @@ class Scaffold extends Command
     file_put_contents( $file_path , $content );
   }
 
-  protected function css_add_tailwind_app ( ): void
-  {
-    $content = <<<'EOD'
-    @tailwind base;
-    @tailwind components;
-    @tailwind utilities;
-    EOD;
-
-    file_put_contents( base_path() . '/resources/css/app.css' , $content );
-  }
-
   protected function sass_install ( ): bool
   {
     $nl = "\n";
@@ -128,8 +121,9 @@ class Scaffold extends Command
       $this->sass_files_dir_create();
       return true;
     }
-    
+
     $this->postcss_plugins_install();
+
     return false;
   }
 
@@ -139,41 +133,40 @@ class Scaffold extends Command
     if ( file_exists( $dir_sass ) ) {
       $this->info( 'It seems a SASS structure already resides in your system' );
     } else {
-      mkdir( $dir_sass , 0755 );
-      mkdir( $dir_sass . '/abstracts' ,   0755 );
-      mkdir( $dir_sass . '/vendors' ,     0755 );
-      mkdir( $dir_sass . '/base' ,        0755 );
-      mkdir( $dir_sass . '/layout' ,      0755 );
-      mkdir( $dir_sass . '/components' ,  0755 );
-      mkdir( $dir_sass . '/pages' ,       0755 );
-      mkdir( $dir_sass . '/themes' ,      0755 );
-
-      file_put_contents( $dir_sass . '/app.scss' , $this->sass_7_1_architecture() );
-      file_put_contents( $dir_sass . '/abstracts/_variables.scss' , '// placehold' );
-      file_put_contents( $dir_sass . '/abstracts/_mixins.scss' ,    '// placehold' );
-      file_put_contents( $dir_sass . '/base/placehold.txt' ,        '' );
-      file_put_contents( $dir_sass . '/base/placehold.txt' ,        '' );
-      file_put_contents( $dir_sass . '/layout/placehold.txt' ,      '' );
-      file_put_contents( $dir_sass . '/components/placehold.txt' ,  '' );
-      file_put_contents( $dir_sass . '/pages/placehold.txt' ,       '' );
-      file_put_contents( $dir_sass . '/themes/placehold.txt' ,      '' );
+      $this->css_sass_7_1_architecture( true );
     }
   }
 
-  protected function sass_files_dir_remove ( ): void
+  protected function css_sass_files_dir_remove ( bool $is_sass = false ): void
   {
-    ( new Filesystem )->deleteDirectory( base_path() . '/resources/sass' );
+    if ( $is_sass ) {
+      ( new Filesystem )->deleteDirectory( base_path() . '/resources/sass' );
+    } else {
+      if ( file_exists( base_path() . '/resources/css/abstracts' ) ) {
+        $str_confirm = 'Do you wish to remove your 7-1 structure?';
+        if ( $this->confirm( $str_confirm ) ) {
+          $dir = base_path() . '/resources/css';
+          $this->css_sass_7_1_dir_file( $dir , true );
+
+          $str_confirm2 = 'Erase the app.css file?';
+          if ( $this->confirm( $str_confirm2 ) ) {
+            file_put_contents( $dir . '/app.css' , '' );
+          }
+        }
+      }
+    }
   }
 
-  protected function sass_7_1_architecture ( ): string
+  protected function css_sass_7_1_imports ( ): string
   {
     $content = <<<'EOD'
     @tailwind base;
     @tailwind components;
     @tailwind utilities;
 
-    @import 'abstracts/variables';
-    @import 'abstracts/mixins';
+    // File partial suggestions for 7-1 architecture
+    // @import 'abstracts/variables';
+    // @import 'abstracts/mixins';
 
     // @import 'vendors/bootstrap';
 
@@ -196,6 +189,61 @@ class Scaffold extends Command
     EOD;
 
     return $content;
+  }
+
+  protected function css_sass_7_1_architecture ( bool $is_sass = false ): void
+  {
+    $str_confirm = 'Do you wish to use a 7-1 architecture for styling?';
+
+    if ( $this->confirm( $str_confirm , true ) ) {
+      if ( $is_sass ) {
+        $dir = base_path() . '/resources/sass';
+        $ext = 'scss';
+        mkdir( $dir , 0755 );
+      } else {
+        $dir = base_path() . '/resources/css';
+        $ext = 'css';
+      }
+
+      file_put_contents( $dir . '/app.' . $ext , $this->css_sass_7_1_imports() );
+      $this->css_sass_7_1_dir_file( $dir );
+    } else {
+      $content = <<<'EOD'
+      @tailwind base;
+      @tailwind components;
+      @tailwind utilities;
+      EOD;
+
+      file_put_contents( $dir . '/app.' . $ext , $content );
+    }
+  }
+
+  protected function css_sass_7_1_dir_file ( string $dir , bool $remove = false ): void
+  {
+    $arr_dir = [
+      'abstracts',
+      'vendors',
+      'base',
+      'layout',
+      'components',
+      'pages',
+      'themes'
+    ];
+
+    foreach( $arr_dir as $value ) {
+      $dir_target = $dir . '/' . $value;
+
+      if ( $remove ) {
+        if ( file_exists( $dir_target ) ) {
+          ( new Filesystem )->deleteDirectory( $dir_target );
+        }
+      } else {
+        if ( !file_exists( $dir_target ) ) {
+          mkdir( $dir_target , 0755 );
+        }
+        file_put_contents( $dir_target . '/placehold.txt' , '' );
+      }
+    }
   }
 
   protected function postcss_plugins_install ( ): void

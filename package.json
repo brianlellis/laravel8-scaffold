@@ -10,18 +10,10 @@
         "production": "mix --production"
     },
     "devDependencies": {
-        "autoprefixer": "^10.3.3",
         "axios": "^0.21",
         "browser-sync": "^2.27.5",
         "browser-sync-webpack-plugin": "^2.3.0",
         "laravel-mix": "^6.0.6",
-        "lodash": "^4.17.19",
-        "postcss": "^8.3.6",
-        "postcss-custom-media": "^8.0.0",
-        "postcss-custom-selectors": "^6.0.0",
-        "postcss-import": "^14.0.2",
-        "postcss-media-minmax": "^5.0.0",
-        "postcss-nesting": "^8.0.1",
-        "tailwindcss": "^2.2.9"
+        "lodash": "^4.17.19"
     }
 }
