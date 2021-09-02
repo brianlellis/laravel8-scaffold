@@ -1,5 +1,7 @@
 <?php
 
+// Null values will automatically 
+
 $blade_mapper = [
   'all' => [
     [
@@ -11,12 +13,20 @@ $blade_mapper = [
       'blade' => 'theme::layout.navbar'
     ],
     [
-      'order' => 3,
-      'blade' => 'theme::layout.footer'
+      'order' => 2,
+      'blade' => 'theme::layout.sidebar_left'
     ],
     [
-      'order' => 2,
+      'order' => 3,
       'blade' => null
+    ],
+    [
+      'order' => 4,
+      'blade' => 'theme::layout.sidebar_right'
+    ],
+    [
+      'order' => 5,
+      'blade' => 'theme::layout.footer'
     ]
   ]
 ];
