@@ -50,11 +50,11 @@ class Scaffold extends Command
       $this->npm_install_dependencies( $this->eval_tailwind_depencies() ); 
       $this->css_tailwind_config_create();
 
-      if ( $sass_install = $this->sass_install() ) {
-        $this->webpack_mix_create( $sass_install );
-      } else {
+      if ( ! $sass_install = $this->sass_install() ) {
         $this->css_add_tailwind_app();
       }
+
+      $this->webpack_mix_create( $sass_install , $this->browsersync_config() );
     }
   }
 
@@ -78,6 +78,7 @@ class Scaffold extends Command
     $file_path  = base_path() . '/tailwind.config.js';
     $content    = <<<'EOD'
     module.exports = {
+      mode: 'jit',
       purge: [
         './storage/framework/views/*.php',
         './resources/**/*.blade.php',
@@ -200,7 +201,7 @@ class Scaffold extends Command
   protected function postcss_plugins_install ( ): void
   {
     $dependencies   = 'postcss-media-minmax postcss-custom-media ';
-    $dependencies  .= 'postcss-custom-selectors postcss-nesting';
+    $dependencies  .= 'postcss-custom-selectors postcss-nesting postcss-import';
     shell_exec( 'npm install -D ' . $dependencies );
     $this->info( 'Adding postcss.config.js' );
     $this->postcss_config_create();
@@ -210,7 +211,7 @@ class Scaffold extends Command
   {
     if ( base_path() . '/postcss.config.js' ) {
       $dependencies   = 'postcss-media-minmax postcss-custom-media ';
-      $dependencies  .= 'postcss-custom-selectors postcss-nesting';
+      $dependencies  .= 'postcss-custom-selectors postcss-nesting postcss-import';
       shell_exec( 'npm uninstall ' . $dependencies );
     
       ( new Filesystem )->delete( base_path() . '/postcss.config.js' );
@@ -223,6 +224,8 @@ class Scaffold extends Command
     $content    = <<<'EOD'
     module.exports = {
       plugins: [
+        require("tailwindcss"),
+        require('postcss-import'),
         require('postcss-nesting'),
         require('postcss-custom-selectors'),
         require('postcss-custom-media'),
@@ -232,6 +235,53 @@ class Scaffold extends Command
     EOD;
 
     file_put_contents( $file_path , $content );
+  }
+
+  protected function browsersync_config ( ): bool
+  {
+    $str_confirm = 'Do you wish to configure your BrowserSync for Laravel?';
+    return $this->confirm( $str_confirm );
+  }
+
+  protected function browsersync_proxy ( ): string
+  {
+    $cur_uri = config('app.url');
+    $str_confirm = "Do you wish to use {$cur_uri} as your proxy uri?";
+
+    if ( $this->confirm( $str_confirm ) ) {
+      return $cur_uri;
+    } else {
+      $new_uri = $this->ask('What URI would you like to use?');
+      $this->dot_env_update( 'APP_URL' , $new_uri );
+      return $new_uri;
+    }
+  }
+
+  protected function dot_env_update ( string $key, string $value ): void
+  {
+    $str_confirm = "Do you wish to update .env {$key} with {$value}?";
+
+    if ( $str_confirm ) {
+      $path       = app()->environmentFilePath();
+      $env        = file_get_contents( $path );
+      $old_value  = env( $key );
+
+      if ( !str_contains( $env , $key . '=' ) ) {
+        $env .= sprintf("%s=%s\n", $key, $value);
+      } else {
+        if ($old_value) {
+          $str_search   = sprintf( '%s=%s' , $key , $old_value );
+          $str_replace  = sprintf( '%s=%s' , $key , $value );
+        } else {
+          $str_search   = sprintf( '%s=' , $key );
+          $str_replace  = sprintf( '%s=%s' , $key , $value );
+        }
+
+        $env  = str_replace( $str_search , $str_replace , $env );
+      }
+
+      file_put_contents( $path , $env );
+    }
   }
 
   protected function npm_install ( ): void
@@ -260,30 +310,72 @@ class Scaffold extends Command
     shell_exec( 'npm uninstall ' . $str_clean );
   }
 
-  protected function webpack_mix_create ( bool $sass_present = false ): void
+  protected function webpack_mix_create ( bool $sass_present , bool $browser_sync ): void
   {
     $file_path  = base_path() . '/webpack.mix.js';
+    $sync_proxy = $browser_sync ? $this->browsersync_proxy() : false;
 
-    if ( $sass_present ) {
-      $content    = <<<'EOD'
-      const mix         = require('laravel-mix');
-      const tailwindcss = require('tailwindcss');
+    $content = <<<'EOD'
+    const mix         = require('laravel-mix');
+    const tailwindcss = require('tailwindcss');
+    EOD;
+
+    if ( $browser_sync && false !== stripos( $sync_proxy , 'https://' ) ) {
+      $domain   = str_replace( 'https://' , '', $sync_proxy );
+      $str_js   = "homedir + '/.valet/Certificates/{$domain}'";
+      $str_js2  = "homedir + '/.config/valet/Certificates/{$sync_proxy}'";
+      $content .= <<<EOD
+      \nconst fs          = require('fs');
+      const homedir     = require('os').homedir();
+      const valet_cert  = 'Certificates/{$domain}';
+
+      if ( fs.existsSync( homedir + '/.valet/' + valet_cert + '.key' ) ) {
+        var ssl_cert_path = homedir + '/.valet/' + valet_cert; 
+      } else if ( fs.existsSync( homedir + '/.config/valet/' + valet_cert + '.key' ) ) {
+        var ssl_cert_path = homedir + '/.config/valet/' + valet_cert; 
+      }
 
       mix.js('resources/js/app.js', 'public/js')
-        .sass('resources/sass/app.scss', 'public/css')
+      EOD;
+    } else {
+      $content .= "\n  mix.js('resources/js/app.js', 'public/js')"; 
+    }
+
+    if ( $sass_present ) {
+      $content .= <<<EOD
+        \n  .sass('resources/sass/app.scss', 'public/css')
         .options({
             postCss: [ tailwindcss('./tailwind.config.js') ],
         })
-        .version();
+        .version()
       EOD;
     } else {
-      $content    = <<<'EOD'
-      const mix         = require('laravel-mix');
-      const tailwindcss = require('tailwindcss');
+      $content .= "\n  .postCss('resources/css/app.css', 'public/css')";
+    }
 
-      mix.js('resources/js/app.js', 'public/js')
-        .postCss('resources/css/app.css', 'public/css');
-      EOD;
+    if ( $browser_sync ) {
+      if ( false !== stripos( $sync_proxy , 'https://' ) ) {
+        $str_js = "homedir + '/.valet/Certificates/' + '{$sync_proxy}'";
+        $content .=<<<EOD
+          \n  .browserSync({
+            proxy: '{$sync_proxy}',
+            host: {$domain},
+            open: 'external',
+            https: {
+              key:  ssl_cert_path + '.key',
+              cert: ssl_cert_path + '.crt',
+            }
+          });
+        EOD;
+      } else {
+        $content .=<<<EOD
+          \n  .browserSync({
+            proxy: '{$sync_proxy}'
+          });
+        EOD;
+      }
+    } else {
+      $content .= ';';
     }
 
     file_put_contents( $file_path , $content );
