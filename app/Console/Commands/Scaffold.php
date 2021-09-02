@@ -68,6 +68,7 @@ class Scaffold extends Command
       if ( $this->confirm( $str_confirm ) ) {
         $this->sass_files_dir_remove();
         $this->webpack_mix_original_create();
+        $this->postcss_plugins_uninstall();
       }
     }
   }
@@ -108,16 +109,26 @@ class Scaffold extends Command
     @tailwind utilities;
     EOD;
 
-    file_put_contents( base_path() . 'resources/css/app.css' , $content );
+    file_put_contents( base_path() . '/resources/css/app.css' , $content );
   }
 
   protected function sass_install ( ): bool
   {
-    $str_confirm = 'Do you wish to install SASS alongside Tailwind?';
+    $nl = "\n";
+    $str_confirm  = 'Do you wish to install SASS alongside Tailwind?'.$nl.$nl;
+    $str_confirm .= 'This is generally not needed as the following post-CSS plugins'.$nl;
+    $str_confirm .= 'will give you the most common SASS usages:'.$nl;
+    $str_confirm .= 'https://github.com/csstools/postcss-nesting'.$nl;
+    $str_confirm .= 'https://github.com/postcss/postcss-custom-selectors'.$nl;
+    $str_confirm .= 'https://github.com/postcss/postcss-custom-media'.$nl;
+    $str_confirm .= 'https://github.com/postcss/postcss-media-minmax'.$nl;
+
     if ( $this->confirm( $str_confirm ) ) {
       $this->sass_files_dir_create();
       return true;
     }
+    
+    $this->postcss_plugins_install();
     return false;
   }
 
@@ -186,6 +197,43 @@ class Scaffold extends Command
     return $content;
   }
 
+  protected function postcss_plugins_install ( ): void
+  {
+    $dependencies   = 'postcss-media-minmax postcss-custom-media ';
+    $dependencies  .= 'postcss-custom-selectors postcss-nesting';
+    shell_exec( 'npm install -D ' . $dependencies );
+    $this->info( 'Adding postcss.config.js' );
+    $this->postcss_config_create();
+  }
+
+  protected function postcss_plugins_uninstall ( ): void
+  {
+    if ( base_path() . '/postcss.config.js' ) {
+      $dependencies   = 'postcss-media-minmax postcss-custom-media ';
+      $dependencies  .= 'postcss-custom-selectors postcss-nesting';
+      shell_exec( 'npm uninstall ' . $dependencies );
+    
+      ( new Filesystem )->delete( base_path() . '/postcss.config.js' );
+    }
+  }
+
+  protected function postcss_config_create ( ): void
+  {
+    $file_path  = base_path() . '/postcss.config.js';
+    $content    = <<<'EOD'
+    module.exports = {
+      plugins: [
+        require('postcss-nesting'),
+        require('postcss-custom-selectors'),
+        require('postcss-custom-media'),
+        require('postcss-media-minmax')
+      ]
+    }
+    EOD;
+
+    file_put_contents( $file_path , $content );
+  }
+
   protected function npm_install ( ): void
   {
     if ( file_exists( base_path() . '/node_modules' ) ) {
@@ -234,9 +282,7 @@ class Scaffold extends Command
       const tailwindcss = require('tailwindcss');
 
       mix.js('resources/js/app.js', 'public/js')
-        .postCss('resources/css/app.css', 'public/css', [
-            //
-        ]);
+        .postCss('resources/css/app.css', 'public/css');
       EOD;
     }
 
