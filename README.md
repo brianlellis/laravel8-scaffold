@@ -5,3 +5,5 @@
 4. Multiple database config per module
 5. Route, Providers, Class per module
 6. Blade directives by module
+7. Out the box CMS ability
+8. Route redirector at application level out the box
