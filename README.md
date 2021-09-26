@@ -1,4 +1,4 @@
-# What did those
+# What this does?
 1. Allows for module package in lieu of composer packages
 2. Fallback view systems from packages
 3. Dynamic routing via files (optional and can be switched back to controller usage)
